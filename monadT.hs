@@ -104,8 +104,7 @@ instance (Applicative m) => Applicative (EitherT e m) where
 instance (Monad m) => Monad (EitherT e m) where
     return = pure
 
-    -- (>>=) :: (a -> m c) -> (b -> m c) -> EitherT a m b -> m c
-    -- (>>=) :: EitherT e m a -> (a -> EitherT e m b) -> EitherT e m b
+    (>>=) :: EitherT e m a -> (a -> EitherT e m b) -> EitherT e m b
     (EitherT ema) >>= f =
         EitherT $ do
             v <- ema
