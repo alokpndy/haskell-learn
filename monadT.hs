@@ -55,7 +55,10 @@ instance (Monad m) => Monad (IdentityT m) where
 
     (>>=) :: IdentityT m a -> (a -> IdentityT m b) -> IdentityT m b
     (IdentityT ma) >>= f =
-        IdentityT $ ma >>= runIdentityT . f
+        let aimb = join $ fmap (runIdentityT . f) ma
+            in IdentityT aimb
+        -- or Refactored to
+        -- IdentityT $ ma >>= runIdentityT . f
 
 
 
@@ -64,6 +67,8 @@ instance (Monad m) => Monad (IdentityT m) where
 -- MaybeT
 
 newtype MaybeT m a = MaybeT { runMaybeT :: m (Maybe a) }
+
+
 
 instance (Functor m) => Functor (MaybeT m) where
     fmap f (MaybeT ma) = MaybeT $ (fmap . fmap) f ma
@@ -85,6 +90,7 @@ instance (Monad m) => Monad (MaybeT m) where
                 Just y  -> runMaybeT (f y)
 
 
+
 -- EitherT
 newtype EitherT e m a = EitherT { runEitherT :: m (Either e a) }
 
@@ -95,16 +101,17 @@ instance (Applicative m) => Applicative (EitherT e m) where
     pure a = EitherT (pure (pure a))
     (EitherT f) <*> (EitherT y) = EitherT ((<*>) <$> f <*> y)
 --
--- instance (Monad m) => Monad (EitherT e m) where
---     return = pure
---
---     (EitherT ema) >>= f =
---         EitherT $ do
---             v <- ema
---             case v of
---                 Left e  ->  ema
---                 Right y -> runEitherT ( f y)
+instance (Monad m) => Monad (EitherT e m) where
+    return = pure
 
+    -- (>>=) :: (a -> m c) -> (b -> m c) -> EitherT a m b -> m c
+    -- (>>=) :: EitherT e m a -> (a -> EitherT e m b) -> EitherT e m b
+    (EitherT ema) >>= f =
+        EitherT $ do
+            v <- ema
+            case v of
+                Left e  ->  return (Left e)
+                Right y ->  runEitherT (f y)
 
 
 
