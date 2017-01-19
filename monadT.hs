@@ -7,14 +7,23 @@ import           Control.Applicative
 import           Control.Arrow
 -- use arrow like - join (***) (+1) (1,2)
 import           Control.Monad
+import           Data.Char
 import           Data.Foldable
 import           Data.Functor
 import           Data.Monoid
 import           Data.Traversable
 import           Data.Tuple
+import Data.Maybe
+
 
 -- Composing Types
 newtype Identity a = Identity { runIdentity :: a }
+
+instance Functor Identity where
+    fmap f (Identity a) = Identity (f a)
+
+
+
 newtype Compose f g a = Compose { runCompose :: f (g a)}
         deriving (Eq, Show)
 
@@ -133,6 +142,15 @@ instance (Monad m) => Monad (ReaderT r m) where
         ReaderT $ \r -> do
             a <- rma r
             runReaderT (f a) r
+
+-- Exercise
+series :: ReaderT String IO ()
+series =  ReaderT putStrLn >> ReaderT (putStrLn . fmap toUpper)
+logSeries = runReaderT series  "Hello"
+
+
+
+
 
 
 -- | StateT
