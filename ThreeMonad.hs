@@ -5,22 +5,30 @@ import           Control.Monad
 import           Control.Monad.Reader
 import           Control.Monad.State
 import           Control.Monad.Writer
--- import           Control.Monad.Trans.Reader
 import           Data.Functor
 import           Data.Monoid
-import           Data.Traversable
-
-
-import           Data.Foldable
-import           System.Environment   (getArgs)
 
 
 
 
+
+{- The Reader Functor
+since  (->) :: * -> * -> *
+also in Functor f, f :: * -> *
+
+fmap :: (a -> b) -> (r -> a) -> (r -> b)
+            f          g
+instance Functor ((->) r) where
+      fmap f g = f . g
+   or fmap f g = (.) f g
+   or fmap     = (.)
+-}
 
 
 -- The Reader Monad
--- To pass an informatio around to a lot of functions
+
+-- where, ask :: MonadReader r m => m r
+
 circA :: Reader Int Int
 circA = do
     mpI <- ask
