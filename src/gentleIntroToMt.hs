@@ -1,5 +1,7 @@
+-- {-# LANGUAGE DeriveFunctor     #-}
 {-# LANGUAGE InstanceSigs      #-}
 {-# LANGUAGE OverloadedStrings #-}
+
 
 module GentleIntro  where
 

@@ -1,14 +1,17 @@
 {-# LANGUAGE ExistentialQuantification #-}
 
+
 module BeautifulFold where
 
+import           Control.Applicative
 import qualified Data.Bits
 import qualified Data.Foldable
 import           Data.Monoid
-import           Data.Word     (Word64)
-import           Prelude       hiding (product, sum)
+import           Data.Word           (Word64)
+import           Prelude             hiding (product, sum)
 
-data Fold i o = forall m . Monoid m => Fold (i -> m) (m -> o)
+
+data Fold i o = forall m. Monoid m => Fold (i -> m) (m -> o)
 
 
 instance Functor (Fold i) where
@@ -41,6 +44,8 @@ sum' xs = getSum $ foldMap Sum xs
 
 
 -- Safer Head :  foldr :: (a -> b -> b) -> b -> [a] -> b
+-- or  also  fold (Fold  (First . Just) getFirst) []  ~ Nothing
+--           fold (Fold  (Last . Just) getLast ) []
 
 
 
@@ -59,10 +64,10 @@ unique hash = Fold tally summarise
 
 
 main :: IO ()
-main = print (fold (unique id) (take 100000 (cycle randomWord64)))
+main = print (fold (unique id) (take 10000 (cycle randomWord64)))
 
 randomWord64 :: [Word64]
-randomWord64 = [2456537040202043740, 1251112620038251420, 1023776523434540, 2938000003949, 1209304889200101]
+randomWord64 = [2456537040202043740, 1251112620038251420, 1080723776523434540, 2370564938000003949, 132209304889200101, 132209304089203100, 125119304889200101, 1080723776500404342]
 
 
 
@@ -73,3 +78,60 @@ combine (Fold tallyL summariseL) (Fold tallyR summariseR) = Fold tally summarise
         tally x = (tallyL x, tallyR x)
         summarise (sL, sR) = (summariseL sL, summariseR sR)
 --- eg fold (combine sum product) [1..10]
+-- or fold (combine (Fold  Sum getSum) (Fold  Product getProduct)) [1..10]
+
+
+-- using instance
+combine' :: Fold i a -> Fold i b -> Fold i (a, b)
+combine' = liftA2 (,)
+
+-- so now - fold (combine' (Fold Sum getSum) (Fold Product getProduct)) [1,2,3,4]
+-- or fold ((,) <$> (Fold Sum getSum) <*> (Fold Product getProduct) ) [1..10]
+-- also this will not materialise all steps at a time rather one at a step
+
+
+-- also       fold ((,) <$> sum <*> product ) [1..10]
+-- Above is better than (Prelude.sum xs, Prelude.product xs) because both sum and pro will not happen simultaneously and hence it will create bigger heap.
+
+
+
+
+
+
+
+
+
+---
+
+instance Num b => Num (Fold a b) where
+    fromInteger a = pure (fromInteger a)
+
+    negate = fmap negate
+    abs = fmap abs
+    signum = fmap signum
+
+    (+) = liftA2 (+)
+    (*) = liftA2 (*)
+    (-) = liftA2 (-)
+
+
+instance Fractional b => Fractional (Fold a b) where
+    fromRational a = pure (fromRational a)
+
+    recip = fmap recip
+
+    (/) = liftA2 (/)
+
+
+-- Now we can do
+-- 1. fold (sum / product) [1..10]
+
+
+
+
+
+
+gain = do
+    putStrLn name
+    where
+         name = "Alok"

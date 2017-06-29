@@ -10,10 +10,10 @@ import           Control.Monad
 import           Data.Char
 import           Data.Foldable
 import           Data.Functor
+import           Data.Maybe
 import           Data.Monoid
 import           Data.Traversable
 import           Data.Tuple
-import Data.Maybe
 
 
 -- Composing Types
@@ -69,13 +69,14 @@ instance (Monad m) => Monad (IdentityT m) where
         -- or Refactored to
         -- IdentityT $ ma >>= runIdentityT . f
 
-
+----------------    runIdentityT $ IdentityT (Just 2) >>= return . (+1)
 
 
 --- Monad Transformer -- PART 2
 -- MaybeT
 
 newtype MaybeT m a = MaybeT { runMaybeT :: m (Maybe a) }
+
 
 
 
@@ -108,7 +109,7 @@ instance (Functor m) => Functor (EitherT e m) where
 
 instance (Applicative m) => Applicative (EitherT e m) where
     pure a = EitherT (pure (pure a))
-    (EitherT f) <*> (EitherT y) = EitherT ((<*>) <$> f <*> y)
+    (EitherT f) <*> (EitherT y) = EitherT ((<*>) <$> f <*> y) ----- liftA2 (<*>) [Right (+1)] [Right 2]
 --
 instance (Monad m) => Monad (EitherT e m) where
     return = pure
@@ -149,7 +150,8 @@ series =  ReaderT putStrLn >> ReaderT (putStrLn . fmap toUpper)
 logSeries = runReaderT series  "Hello"
 
 
-
+data Person = Person String String
+    deriving (Show, Eq)
 
 
 

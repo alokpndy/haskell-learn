@@ -11,6 +11,9 @@ import           Data.Functor
 import           Data.Monoid
 
 
+import           System.Random
+
+
 
 {- The Reader Functor
 
@@ -105,13 +108,20 @@ ho = runWriter $ half 200 >>= half >>= half
 
 
 
+fib :: Int -> Int -> Writer String Int
+fib a b = do
+    tell ( "Adding " ++ show a ++ " to " ++ show b ++ ". ")
+    return (a+ b)
 
-
+main = do
+    let a = runWriter $ fib 10 20 >>= fib 30 >>= fib 40
+    print (fst a)
 
 
 
 -- State Monad
 -- Write as well as read
+-- s == state , a == result     state -> (result, modified state)
 -- data State s a = State {runState :: s -> (a, s)}
 -- return a = State $ \s -> (a,s)
 greeter :: State String String
@@ -130,18 +140,76 @@ instance Functor (Distaste s) where
     fmap f (Distaste g) = Distaste $ \ s ->  mapp f (g s)
             where mapp f (x, y) = (f x, y)
 
+
 --
+
 instance Applicative (Distaste s) where
-    pure :: a -> Distaste s a
-    pure a = Distaste $ \ s -> (a, s)
+    pure a = Distaste (\s -> (a,s))
 
-    (<*>) :: Distaste s (a -> b) -> Distaste s a -> Distaste s b
-    Distaste f <*> Distaste g = Distaste $ \s -> mapp (fst (f s)) (g s)
-                where mapp h (x, y) = (h x, y)
-
+    mf <*> xs = Distaste $ \s0 -> let (f, s1) = runDistaste mf s0
+                                      (x, s2) = runDistaste xs s1
+                                  in  (f x, s2)
 --
 instance Monad (Distaste s) where
-    return  =  pure
+  return a              =  Distaste (\s -> (a,s))
 
-    (>>=) :: Distaste s a -> (a -> Distaste s b) -> Distaste s b
-    Distaste f >>= g = Distaste $ \ s -> runDistaste (g (fst (f s))) s
+  Distaste mf >>= mg         =  Distaste (\s -> let (r,s1) = mf s
+                                                    Distaste c2 = mg r in c2 s1)
+
+-- State eg
+fizzBuzz :: Integer -> String
+fizzBuzz n | n `mod` 15 == 0 = "FizzBuzz"
+           | n`mod`5 == 0 = "Fizz"
+           | n`mod`3 == 0 = "Buzz"
+           | otherwise = show n
+addResult :: Integer -> State [String] ()
+addResult n = do
+        xs <- get
+        let result = fizzBuzz n
+        put (result : xs)
+
+fizzbuzzList :: [Integer] -> [String]
+fizzbuzzList list =
+        execState (mapM_ addResult list) []
+
+train :: IO ()
+train =
+    mapM_ putStrLn $ reverse $ fizzbuzzList [1..10]
+
+
+
+foo :: Int -> State [String] ()
+foo n = do
+    st <- get
+    let b | n > 5 = "High"
+          | n < 5 = "Low"
+          | otherwise = "Equal"
+    put (b : st)
+
+
+bar :: Int -> State [String] ()
+bar n = do
+    st <- get
+    let b | n > 5 = "High"
+          | n < 5 = "Low"
+          | otherwise = "Equal"
+    put ([b])
+
+-- execState (mapM_ breeze [2,7,11,3,5]) [] -- ["Equal","Low","High","High","Low"]
+-- runState (mapM_ breeze [2,7,11,3,5]) []--
+-- evalState :: State s a -> s -> a
+--  ((),["Equal","Low","High","High","Low"])
+--
+-- :t sequenceA $ fmap breeze [3,6]       (mapM == traverse)
+
+-- also -- execState (sequenceA $ concat $ (:) <$>  [foo 2] <*>  [[foo 8]] ) []
+-- as
+--     instance Traversable [] where
+--        traverse f = List.foldr cons_f (pure [])
+--            where cons_f x ys = (:) <$> f x <*> ys
+
+
+more :: State () [Int]
+more = traverse pure [1..4]
+
+showMore = print (evalState more ())
