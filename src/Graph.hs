@@ -2,13 +2,25 @@
 module Graph where
 
 import           Control.Applicative
-import qualified Data.Array          as DA
+import qualified Data.Array                   as DA
 import           Data.Graph
 import           Data.GraphViz
-import           Data.List           (nub)
-import           Data.Map            (Map, fromList, (!))
+import           Data.List                    (nub)
+import           Data.Map                     (Map, fromList, (!))
 
 import           System.Environment
+
+
+import           Math.Geometry.Grid           (boundary, contains, distance,
+                                               indices, isAdjacent,
+                                               minimalPaths, neighbours, size,
+                                               tileCount)
+import           Math.Geometry.Grid.Hexagonal (hexHexGrid)
+import           Math.Geometry.Grid.Square    (rectSquareGrid)
+-- use for (!)
+import qualified Math.Geometry.GridMap        as GM
+import           Math.Geometry.GridMap.Lazy   (lazyGridMap)
+
 
 myGraph :: Graph
 myGraph = buildG bounds edges
@@ -128,13 +140,37 @@ nodes :: [(Int, String)]
 nodes = map (\x -> (x, "")) [1..4]
 
 edgs :: [(Int, Int, Bool)]
-edgs = [ (1, 3, True)
-        , (1, 4, True)
+edgs = [ (1, 2, True)
         , (2, 3, True)
+        , (3, 4, True)
+        , (1, 4, True)
         , (2, 4, True)
-        , (3, 4, True)]
+        , (1, 3, True)]
 
 main = addExtension (runGraphviz graphDot) Png "graphDot"
 
 
 -- Using Directed Acyclic Word Graph
+
+
+
+
+-- Hexagonal graph
+hexmain = do
+         let putStrLn' str = putStrLn ('\n':str)
+         putStrLn' "Indices of hex grid:"
+         print $ indices hex
+         putStrLn' "Neighbors around (1,1) of hex grid:"
+         print $ neighbours hex (1,1)
+         putStrLn' "Indices of rect grid:"
+         print $ indices rect
+         putStrLn' "Neighbors around (1,1) of rect grid:"
+         print $ neighbours rect (1,1)
+         putStrLn' "value of hex at index (1,1)"
+         print $ hexM GM.! (1,1)
+
+
+
+hex = hexHexGrid 4
+rect = rectSquareGrid 3 5
+hexM = lazyGridMap hex [1..]

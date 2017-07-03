@@ -37,3 +37,4 @@ executable haskell-basics
                     ,  attoparsec
                     ,  time
                     ,  random
+                    ,  grid

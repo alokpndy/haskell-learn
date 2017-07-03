@@ -195,6 +195,14 @@ bar n = do
           | otherwise = "Equal"
     put ([b])
 
+--
+goo :: String -> State [String] ()
+goo n = do
+    st <- get
+    let b | n == "Max" = "High"
+          | otherwise = "Equal"
+    put (b : st)
+
 -- execState (mapM_ breeze [2,7,11,3,5]) [] -- ["Equal","Low","High","High","Low"]
 -- runState (mapM_ breeze [2,7,11,3,5]) []--
 -- evalState :: State s a -> s -> a
@@ -213,3 +221,23 @@ more :: State () [Int]
 more = traverse pure [1..4]
 
 showMore = print (evalState more ())
+
+
+sure :: State () [String]
+sure = traverse pure ["al", "kl"]
+
+
+predictor :: Int -> State [String] Int
+predictor n = do
+    st <- get
+    let b
+          | mod n 2 == 0 = "even"
+          | mod n 2 == 1 = "odd"
+          | otherwise = "Whoa"
+    put (b : st)
+    return (n + 1)
+-- return (n+1)
+-- runState (traverse predictor [1..10]) [] ---- ([2,3,4,5,6,7,8,9,10,11],["even","odd","even","odd","even","odd","even","odd","even","odd"])
+
+-- make   return n
+-- runState (predictor 1 >>= predictor >>= predictor) [] ---- (4,["odd","even","odd"])
