@@ -7,6 +7,9 @@
 
 {-# LANGUAGE DataKinds                  #-}
 
+{-# LANGUAGE FlexibleContexts           #-}
+{-# LANGUAGE TypeFamilies               #-}
+
 
 
 module GADTANDTYPECLASS where
@@ -244,3 +247,93 @@ infixl 0 #
 
 builder1 = defaultConfig' # profile
 builder2 = builder1 # goFaster
+
+
+
+
+
+
+
+-- TypeFamlies
+{--
+{-# LANGUAGE TypeFamilies               #-}
+{-# LANGUAGE FlexibleContexts               #-}
+--}
+
+data Fire = Charmander | Charmeleon | Charizard deriving Show
+data Water = Squirtle | Wartortle | Blastoise deriving Show
+data Grass = Bulbasaur | Ivysaur | Venusaur deriving Show
+
+-- instead of writinf here write in instance of class
+-- data FireMove = Ember | FlameThrower | FireBlast deriving Show
+-- data WaterMove = Bubble | WaterGun deriving Show
+-- data GrassMove = VineWhip deriving Show
+
+{-- Instead of
+class (Show pokemon, Show move) => Pokemon pokemon move where
+  pickMove :: pokemon -> move
+--}
+
+-- we can write
+-- here we have an associated type i.e MOve type
+class (Show a, Show (Move a)) => Pokemon a where
+  data Move a :: *  --- type function
+  pickMove :: a -> Move a
+
+
+instance Pokemon Fire where
+    data Move Fire = Ember | FlameThrower | FireBlast deriving Show
+    pickMove Charmander = Ember
+    pickMove Charmeleon = FlameThrower
+    pickMove Charizard  = FireBlast
+
+
+instance Pokemon Water where
+  data Move Water = Bubble | WaterGun deriving Show
+  pickMove Squirtle = Bubble
+  pickMove _        = WaterGun
+
+main' :: IO ()
+main' = do
+  print $ pickMove Charmander
+
+
+printBattle :: String -> String -> String -> String -> String -> IO ()
+printBattle pokemonOne moveOne pokemonTwo moveTwo winner = do
+    putStrLn $ pokemonOne ++ " used " ++ moveOne
+    putStrLn $ pokemonTwo ++ " used " ++ moveTwo
+    putStrLn $ "Winner is: " ++ winner ++ "\n"
+
+{--
+class (Pokemon pokemon, Pokemon foe) => Battle pokemon foe where
+    battle :: pokemon -> foe -> IO ()
+    battle pokemon foe = do
+      printBattle (show pokemon) (show move) (show foe) (show foeMove) (show pokemon)
+     where
+      foeMove = pickMove foe
+      move = pickMove pokemon
+--}
+
+-- Including Associated Type Synonyms
+class (Show (Winner pokemon foe), Pokemon pokemon, Pokemon foe) => Battle pokemon foe where
+  type Winner pokemon foe :: *  -- this is the associated type
+  type Winner pokemon foe = pokemon -- -- this is the default implementation
+
+  battle :: pokemon -> foe -> IO ()
+  battle pokemon foe = do
+    printBattle (show pokemon) (show move) (show foe) (show foeMove) (show winner)
+   where
+    foeMove = pickMove foe
+    move = pickMove pokemon
+    winner = pickWinner pokemon foe
+
+  pickWinner :: pokemon -> foe -> (Winner pokemon foe)
+
+
+
+instance Battle Water Fire where
+    pickWinner pokemon foe = pokemon
+
+instance Battle Fire Water where
+    type Winner Fire Water = Water
+    pickWinner = flip pickWinner

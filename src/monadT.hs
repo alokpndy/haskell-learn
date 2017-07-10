@@ -7,6 +7,9 @@ import           Control.Applicative
 import           Control.Arrow
 -- use arrow like - join (***) (+1) (1,2)
 import           Control.Monad
+import           Control.Monad.IO.Class
+import           Control.Monad.Trans.Class
+import           Control.Monad.Trans.Except
 import           Data.Char
 import           Data.Foldable
 import           Data.Functor
@@ -43,6 +46,12 @@ instance (Applicative f, Applicative g) => Applicative (Compose f g) where
     (Compose f) <*> (Compose a) =
         Compose $ (<*>) <$> f <*>  a
 
+
+
+
+v :: Compose [] Maybe (Compose Maybe [] Integer)
+v = Compose [Just (Compose $ Just [1])]
+
 -- Monad are not closed under composaition
 
 
@@ -77,9 +86,6 @@ instance (Monad m) => Monad (IdentityT m) where
 
 newtype MaybeT m a = MaybeT { runMaybeT :: m (Maybe a) }
 
-
-
-
 instance (Functor m) => Functor (MaybeT m) where
     fmap f (MaybeT ma) = MaybeT $ (fmap . fmap) f ma
 
@@ -99,6 +105,11 @@ instance (Monad m) => Monad (MaybeT m) where
                 Nothing -> return Nothing
                 Just y  -> runMaybeT (f y)
 
+--     MaybeT               m                      a
+--              ExceptT   e              ma
+--                              ReadetT  r ma
+bar :: MaybeT ( ExceptT String (ReaderT () IO ) ) Int
+bar = return  1
 
 
 -- EitherT
@@ -125,7 +136,7 @@ instance (Monad m) => Monad (EitherT e m) where
 
 
 
--- | ReaderT
+-- | ReaderT   -- ask and return
 newtype ReaderT r m a = ReaderT { runReaderT :: r -> m a }
 
 instance (Functor m) => Functor (ReaderT r m) where
@@ -147,7 +158,9 @@ instance (Monad m) => Monad (ReaderT r m) where
 -- Exercise
 series :: ReaderT String IO ()
 series =  ReaderT putStrLn >> ReaderT (putStrLn . fmap toUpper)
-logSeries = runReaderT series  "Hello"
+
+
+
 
 
 data Person = Person String String
@@ -155,7 +168,7 @@ data Person = Person String String
 
 
 
--- | StateT
+-- | StateT  -  get and put and return and modify
 newtype StateT s m a = StateT { runStateT :: s -> m (a, s)}
 
 instance (Functor m) => Functor (StateT s m) where
@@ -177,3 +190,112 @@ instance (Monad m) => Monad (StateT s m) where
                 StateT $ \s -> do
                     (a, s') <- sma s
                     runStateT (f a) s'
+
+
+
+
+
+---
+-- code :: StateT [Integer] IO ()
+-- code = do
+--     x <- pop
+--     io $ print x
+--     y <- pop
+--     io $ print y
+--     return ()
+--
+-- pop :: StateT [Integer] IO Integer
+-- pop = do
+--     (x:xs) <- get
+--     put xs
+--     return x
+
+io :: IO a -> StateT [Integer] IO a
+io = liftIO  $ print 3
+
+
+
+-- Exercise
+
+
+-- main :: IO
+main = do
+  putStr "Enter userName"
+  maybeUserName <- readUserName
+  case maybeUserName of
+        Nothing -> putStrLn "Invalid user name!"
+        Just uName -> do
+          putStr "Enter email"
+          maybeEmail <- readEmail
+          case maybeEmail of
+            Nothing -> putStrLn "Invalid email!"
+            Just email -> do
+              maybePassword <- readPassword
+              putStr "Enter password"
+              case maybePassword of
+                Nothing       -> putStrLn "Invalid Password"
+                Just password -> putStrLn $ "Password is " ++ password
+
+--
+
+
+main' :: IO ()
+main' = do
+  maybeCreds <- runMaybeT $ do
+    usr <- readUserName'
+    email <- readEmail'
+    pass <- readPassword'
+    return (usr, email, pass)
+  case maybeCreds of
+    Nothing        -> putStrLn "Couldn't login!"
+    Just (u, e, p) -> putStrLn $ "Login detail: " ++ u ++ ", " ++ e ++ ", " ++ p
+--
+
+readUserName :: IO (Maybe String)
+readUserName = do
+  str <- getLine
+  if length str > 5
+    then return $ Just str
+    else return Nothing
+
+--
+readUserName' :: MaybeT IO String
+readUserName' = MaybeT $ do
+  putStrLn "Enter useName: "
+  str <- getLine
+  if length str > 5
+    then return $ Just str
+    else return Nothing
+--
+
+readEmail :: IO (Maybe String)
+readEmail = do
+  str <- getLine
+  if length str > 5
+    then return $ Just str
+    else return Nothing
+--
+readEmail' :: MaybeT IO String
+readEmail' = MaybeT $ do
+  putStrLn "Enter email: "
+  str <- getLine
+  if length str > 5
+    then return $ Just str
+    else return Nothing
+--
+
+readPassword :: IO (Maybe String)
+readPassword = do
+  str <- getLine
+  if length str > 5
+    then return $ Just str
+    else return Nothing
+--
+readPassword' :: MaybeT IO String
+readPassword' = MaybeT $ do
+  putStrLn "Enter password: "
+  str <- getLine
+  if length str > 5
+    then return $ Just str
+    else return Nothing
+--

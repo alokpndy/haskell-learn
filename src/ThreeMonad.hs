@@ -11,6 +11,7 @@ import           Data.Functor
 import           Data.Monoid
 
 
+import           Data.Maybe
 import           System.Random
 
 
@@ -24,6 +25,9 @@ instance Functor ((->) r) where
    or fmap     = (.)
 
 -}
+
+
+
 
 newtype Mystery r a = Mystery { solve :: r -> a }
 
@@ -216,6 +220,12 @@ goo n = do
 --        traverse f = List.foldr cons_f (pure [])
 --            where cons_f x ys = (:) <$> f x <*> ys
 
+-- traverse f = sequenceA . fmap f
+sequenceAholla us = foldr (\u v -> (:) <$> u <*> v) (pure []) us
+-- sequenceAholla ([ Just 2, Just 3, Just 4]) --- Just [2,3,4]
+
+mytraverse f = foldr cons_f (pure [])
+            where cons_f x ys = (:) <$> f x <*> ys
 
 more :: State () [Int]
 more = traverse pure [1..4]
@@ -241,3 +251,33 @@ predictor n = do
 
 -- make   return n
 -- runState (predictor 1 >>= predictor >>= predictor) [] ---- (4,["odd","even","odd"])
+
+-- incrementor :: Int -> State [Maybe Int] (Maybe Int)
+-- incrementor n = do
+--     st <- get
+--     put $ Just n : st
+--     let old = case st of
+--                 [] -> Just (n + 1)
+--                 xs -> case head xs of
+--                         (Just x) -> if x + 1 == n then Nothing  else Just (n + 1)
+--                         Nothing  -> Nothing
+--     return old
+
+
+incrementor :: Int -> State [Maybe Int] ()
+incrementor n = do
+    st <- get
+    case st of
+            [] ->  put $ Just (n + 1) : st
+            xs -> if summation xs + 1 > n then put $ Nothing : st
+                                          else put $ Just (n + 1) : st
+    where
+        summation = sum . catMaybes
+
+
+
+
+
+boo = do
+    let scanMap f = scanr ((:) . f) []
+    print $ scanMap (\x -> x + 1) [1..5]

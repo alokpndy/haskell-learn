@@ -80,3 +80,8 @@ main :: IO ()
 main = do
   runExceptT loginDialogue
   return ()
+
+
+
+v :: Compose [] Maybe (Compose Maybe [] Integer)
+v = Compose [Just (Compose $ Just [1])]

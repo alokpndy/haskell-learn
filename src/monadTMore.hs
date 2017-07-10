@@ -27,3 +27,8 @@ data LoginError = InvalidEmail
               | NoSuchUser
               | WrongPassword
               deriving Show
+
+goo :: MaybeT (ExceptT LoginError IO) Int
+goo = do
+    guard (1 > 2)
+    return 2
