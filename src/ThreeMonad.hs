@@ -275,6 +275,14 @@ incrementor n = do
         summation = sum . catMaybes
 
 
+{--  Also using fold
+incrementor :: [Int] -> Int -> [Int]
+incrementor st n = if null st || n >= sum st + 1
+                        then n + 1 : st
+                        else st
+
+res = reverse $ foldl' incrementor mempty [1,2,4,5]
+--}
 
 
 

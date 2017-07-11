@@ -7,8 +7,12 @@ import           Control.Monad
 import           Control.Monad.IO.Class
 import           Control.Monad.Trans.Class
 import           Control.Monad.Trans.Except
+import           Control.Monad.Trans.Maybe
+import           Control.Monad.Trans.Reader
 import           Control.Monad.Trans.State
+import           Data.Monoid
 import           System.Random
+
 
 -----------------------------   get   (return, put)
 --     StateT  s  m   a   --    s ->  (ma,      s)
@@ -43,7 +47,7 @@ Hello enter a value: 23
 main = do answer <- getStdRandom (randomR (1,100)) -- think of a number
           putStrLn "I'm thinking of a number between 1 and 100, can you guess it?"
           guesses <- execStateT (guessSession answer) 0
-          putStrLn $ "Success in " ++ (show guesses) ++ " tries."
+          putStrLn $ "Success in " ++ show guesses ++ " tries."
 
 guessSession :: Int -> StateT Int IO ()
 guessSession answer =
@@ -55,4 +59,109 @@ guessSession answer =
                        guessSession answer
               GT -> do lift $ putStrLn "Too high"
                        guessSession answer
-              EQ -> lift $ putStrLn "Got it!"
+              EQ -> lift $ putStrLn ("Got it!," ++ show answer)
+
+
+dbError :: MaybeT (ExceptT String (ReaderT () IO) ) Int
+dbError = do
+    liftIO $ putStr "o"
+    return 2
+-- runMaybeT ::  ExceptT String (ReaderT () IO) (Maybe Int)
+-- runExceptT :: ReaderT () IO (Either String (Maybe Int))
+-- runReaderT :: () -> IO (Either String (Maybe Int))
+-- Right (Just 2)
+
+
+{--
+StateT s (ExceptT e m) a
+has the "expanded" form: s -> m (Either e (s, a))
+ExceptT e (StateT s m)
+"expands" to: s -> m (s, Either e a).
+
+former allows you to roll-back changes to the state when an error occurs in catchError,
+
+latter commits faulty states making them harder to rollback
+--}
+
+
+rollBack :: StateT String (ExceptT String IO) Int
+rollBack = do
+    a <- get
+    if length a > 5 then lift $ throwE a
+                    else return (length a)
+-- runStateT :: ::  String -> ExceptT String IO (Int, String)
+-- runExceptT (runStateT rollBack "OP") :: :: IO (Either String (Int, String))
+-- Just (Right (1,"OP"))
+
+data LengthError = EmptyString
+          | StringTooLong Int
+          | OtherError String
+
+
+instance Show LengthError where
+    show EmptyString = "The string was empty!"
+    show (StringTooLong len) =
+        "The length of the string (" ++ show len ++ ") is too long"
+    show (OtherError msg) = msg
+
+checkLength :: String -> Either LengthError String
+checkLength xs
+        | ln == 0 = Left EmptyString
+        | ln <= 5 = Left $ OtherError "Not much to deduce"
+        | ln > 20 = Left $ StringTooLong ln
+        | otherwise = Right xs
+        where
+            ln = length xs
+
+
+calculateLength :: ExceptT LengthError IO String
+calculateLength = do
+     liftIO $ putStrLn "Enter a sentence"
+     sen <- lift getLine
+     case checkLength sen of
+         Left a  -> throwE a
+         Right a -> return a
+
+calculateLength' :: ReaderT String (ExceptT LengthError IO) String
+calculateLength' = do
+    sen <- ask
+    case checkLength sen of
+        Left a  -> lift $ throwE a
+        Right a -> return a
+-- runExceptT (runReaderT calculateLength' "I am Alok") --- Right "I am Alok"
+-- runExceptT (runReaderT calculateLength' "I am") --- Left Not much to deduce
+
+
+
+calculateLength'' :: StateT String (ReaderT String (ExceptT LengthError IO)) String
+calculateLength'' = return "kk"
+
+-- runStateT calculateLength'' :: String -> ReaderT String (ExceptT LengthError IO) (String, String)
+-- runReaderT (runStateT calculateLength'' "p") :: String -> ExceptT LengthError IO (String, String)
+-- runExceptT $ runReaderT (runStateT calculateLength'' "p") "a" :: IO (Either LengthError (String, String)) ---------- Right ("kk","p")
+
+
+
+type Env = String
+calculateLength''' :: ExceptT LengthError (StateT Int (ReaderT Env IO)) String
+calculateLength''' = do
+    -- sen <- lift get --- get from StateT
+    lift $ modify (+1) -- added as second thougth hence below comments may change
+    sen2 <- lift . lift $ ask -- ask ReaderT
+    case checkLength sen2 of
+        Left a  -> throwE a
+        Right a -> return a
+-- (runExceptT calculateLength''') :: StateT String (ReaderT Env IO) (Either LengthError String)
+-- runStateT (runExceptT calculateLength''') :: String -> ReaderT Env IO (Either LengthError String, String)
+--  runReaderT (runStateT (runExceptT calculateLength''')"state") :: Env -> IO (Either LengthError String, String)
+-- runReaderT (runStateT (runExceptT calculateLength''')"state") "reader" :: IO (Either LengthError String, String) ---------  (Right "kk","state")
+
+
+
+
+data Peta = Animal | Bird
+    deriving Show
+
+instance Bounded Peta where
+    minBound = Animal
+    maxBound = Bird
