@@ -19,6 +19,9 @@ import           Data.Traversable
 import           Data.Tuple
 
 
+-- What is monadic effect?
+-- If you have a value of type M a with M a Monad (or Applicative for applicative effects), then by effects we mean the information that is not contained in the a part. For example with IO it is very clear. A value of IO Int is an Int with some IO effects like writing to a file or firing missiles. A value of type Maybe Int is an Int with the effect of maybe actually not containing an Int. For [Int] the effect is, that you actually have multiple Ints.
+
 -- Composing Types
 newtype Identity a = Identity { runIdentity :: a }
 

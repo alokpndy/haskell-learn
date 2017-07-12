@@ -1,5 +1,5 @@
 
-{-# LANGUAGE ConstrainedClassMethods #-}
+{-# LANGUAGE ConstrainedClassMethods #-} -- Allow a class method's type to place additional constraints on a class type variable.
 {-# LANGUAGE DeriveGeneric           #-}
 {-# LANGUAGE FlexibleContexts        #-}
 {-# LANGUAGE TypeFamilies            #-}
@@ -69,7 +69,7 @@ main = do
     let check = contains sqGrid (2,2)
     print sqGrid
     print sqInd
-    print check 
+    print check
 
 
 rectSquareGrid :: Int -> Int -> RectSquareGrid

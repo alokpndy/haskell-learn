@@ -254,11 +254,39 @@ builder2 = builder1 # goFaster
 
 
 
--- TypeFamlies
+-------------------- TypeFamlies
+-- Type families come in two flavors: data families and type synonym families.
+-- Data Family : data and newtype definitions
+-- Type Family - type synonym
+
+
 {--
 {-# LANGUAGE TypeFamilies               #-}
 {-# LANGUAGE FlexibleContexts               #-}
 --}
+
+{--
+Without FlexibleContexts all typeclass constraints on function definitions must have type variables. For example:
+
+add :: Num a => a -> a
+add = (+)
+Where a is the type variable. With FlexibleContexts enabled you can have any type inside a typeclass.
+
+intAdd :: Num Int => Int -> Int
+intAdd = (+)
+This example is pretty contrived but it is the simplest I can think of. FlexibleContexts is usually only used with MultiParamTypeClasses. Here is an example:
+
+class Shower a b where
+  myShow :: a -> b
+
+doSomething :: Shower a String => a -> String
+doSomething = myShow
+Here you can see we say that we only want a Shower a String. Without FlexibleContexts String would have to be a type variable instead of a concrete type.
+--}
+
+
+
+
 
 data Fire = Charmander | Charmeleon | Charizard deriving Show
 data Water = Squirtle | Wartortle | Blastoise deriving Show
@@ -277,7 +305,7 @@ class (Show pokemon, Show move) => Pokemon pokemon move where
 -- we can write
 -- here we have an associated type i.e MOve type
 class (Show a, Show (Move a)) => Pokemon a where
-  data Move a :: *  --- type function
+  data family Move a :: *
   pickMove :: a -> Move a
 
 
