@@ -305,7 +305,7 @@ class (Show pokemon, Show move) => Pokemon pokemon move where
 -- we can write
 -- here we have an associated type i.e MOve type
 class (Show a, Show (Move a)) => Pokemon a where
-  data family Move a :: *
+  data  Move a :: *
   pickMove :: a -> Move a
 
 

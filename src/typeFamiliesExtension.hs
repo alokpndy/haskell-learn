@@ -8,13 +8,32 @@ module TypeFamiliesExtension where
 
 import           GHC.Generics (Generic)
 
+
 -- Practice TypeFamily
+
+-- Use TypeFamilies when return type of generic functions is ambigious
+-- Type synonym family instance are non injective i.e two different type functions can map to same type on RHS
+{--
+type instance F Int = Bool
+type instance F Char = Bool
+-- Hence it must be remembered that type checker alone cannot deduce fro RHS.
+-- i.e someFunc x :: Bool    will not make it clear if x == Int or x == Char
+--}
+
+{-- Data Family are injective
+data T Int = T1 Int
+data T Char = TC Bool
+-- now Thus type checker can infer from LHS as the the RHS is different data constructore
+--}
+
+
 class Grid g where
     type Index g :: *  -- using TypeFamilies feture Associated Type Synonyms
     type Direction g :: *
 
     indices :: g -> [Index g]
 
+    -- need ConstrainedClassMethod for Eq (g)  i.e constraint on class type variable
     contains :: Eq (Index g) => g -> Index g -> Bool
     contains g a = a `elem` indices g
 
@@ -26,11 +45,11 @@ class Grid g where
     defaultMinDistance :: g -> [Index g] -> Index g -> Int
     defaultMinDistance g xs a = minimum . map (distance g a) $ xs
 
-    -- here we have an associated type i.e Eq (Index g)e
+    -- here we have an associated type i.e Eq (Index g)
     -- Non type-variable argument in the constraint: Eq (Index g) eg. not Eq (a)
     -- (Use FlexibleContexts to permit this)
     -- Also
-    -- Constraint ‘Eq (Index g)’ in the type of ‘neighbours’
+    -- Constraint ‘Eq (g)’ in the type of ‘neighbours’
     -- constrains only the class type variables --  Use ConstrainedClassMethods to allow it
     neighbours :: Eq (Index g) => g -> Index g -> [Index g]
     neighbours = defaultNeighbours

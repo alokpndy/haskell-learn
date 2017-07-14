@@ -158,10 +158,9 @@ calculateLength''' = do
 
 
 
-
-data Peta = Animal | Bird
-    deriving Show
-
-instance Bounded Peta where
-    minBound = Animal
-    maxBound = Bird
+gt :: StateT String IO String
+gt = do
+   name <- get
+   liftIO $ putStrLn "HI"
+   put "T"
+   return ("hh..." ++ name ++ "...!")
