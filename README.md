@@ -1,2 +1,2 @@
-# haskell-learn
-Basics of Haskell Language
+# Learning Haskell from beginning.
+Learning Haskell everyday.
