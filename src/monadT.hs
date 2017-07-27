@@ -29,7 +29,8 @@ instance Functor Identity where
     fmap f (Identity a) = Identity (f a)
 
 
-
+-- to make a Functor out of composition of two functors
+---------------------------------------------------------
 newtype Compose f g a = Compose { runCompose :: f (g a)}
         deriving (Eq, Show)
 
