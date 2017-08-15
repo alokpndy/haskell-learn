@@ -39,7 +39,7 @@ dayDate = DayDate <$> integer
 dateParser :: IO ()
 dateParser = do
     file <- T.readFile "booklist.txt"
-    print $ A.parseOnly  (many $ many dayDate <* A.endOfLine) file
+    print $ A.parseOnly  (many $ dayDate <* A.endOfLine) file
 
 
 data Book = Book { bookName, authorName :: Text }
