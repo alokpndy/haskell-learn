@@ -13,6 +13,7 @@ module Lens1 where
 
 import           Control.Applicative
 import           Data.Functor.Contravariant
+import           Data.Profunctor
 import           Data.Foldable
 import           Control.Monad.Identity
 import           Data.Bifunctor
@@ -25,8 +26,7 @@ import           System.Environment
 import           Text.Printf
 
 
-
--- | Lens 1
+{- | Lens 1 -}
 data Lens1 s a = Lens1
     { getter :: s -> a
     , setter :: a -> s -> s }
@@ -44,7 +44,7 @@ ix1 index = Lens1 { getter = (!! index)
                  , setter = setIth index }
 
 
--- | Lens 2
+{- | Lens 2 -}
 type Lens2 s a = (a -> a) -> s -> (a, s)
 
 ix2 :: Int -> Lens2 [a] a
@@ -57,9 +57,9 @@ ix2 index f list
                                 -- fmap will work same as second for (,)
 
 
--- | Lens3                      using Functor
--- Rank type to constraint to type synonyms
--- all monads are functor not vice versa
+{- | Lens3                      using Functor -}
+{- Rank type to constraint to type synonyms
+   all monads are functor not vice versa -}
 
 type Lens3 s a = forall  f. Functor f => (a -> f a) -> s -> (a, f s)
 
@@ -72,7 +72,7 @@ ix3 index f list
                                 else second ((old :) <$>) $ ix3 (index - 1) f rest
 
 
--- | Lens4                      Setter is Getter
+{- | Lens4                      Setter is Getter -}
 
 type Lens4 s a = forall f. Functor f => (a -> f a) -> s -> f s
 
@@ -87,7 +87,7 @@ ix4 index f list
 -- ix4 1 (\x -> (,) x x) [1,2,3,4]
 
 
--- | Lens                       s t a b
+{- | Lens                       s t a b -}
 type Lens s t a b = forall f. Functor f => (a -> f b) -> s -> f t
 
 type Lens' s a = forall f. Functor f => (a -> f a) -> s -> f s
@@ -100,13 +100,12 @@ type Lens' s a = forall f. Functor f => (a -> f a) -> s -> f s
 -- | Identity Functor
 -- Setting    ix4 1 (\x -> Identity 99 ) [1,2,3,4]   -- a
 -- Modifying  ix4 1 (\x -> Identity (x * 10) ) [1,2,3,4]
--- | Over
+{- | Over -}
 over :: Lens s t a b -> ((a -> b) -> s -> t)
 over l f = runIdentity . l (Identity . f)
 
 -- over (ix4 2) (+100) [1,2,3]
 -- over (ix4 2) (const 10) [1,2,3]                  -- a
-
 
 
 -- | Test Yourself
@@ -127,7 +126,7 @@ choosing l1 l2 f s = case s of
     Left s1  -> Left <$> l1 f s1
     Right s2 -> Right <$> l2 f s2
 
--- modify and return  (+9 )(1,2) => (10, (10, 2))
+{- modify and return  (+9 )(1,2) => (10, (10, 2)) -}
 (<%~) :: Lens s t a b -> (a -> b) -> s -> (b, t)
 (<%~) l f s = l  (liftA2 (,) f f) s
 
@@ -150,7 +149,7 @@ _all ref = lens get set
 -- over (_all 1) (const 100) [1,8,1,3]
 
 
--- | Applicative  -- the power of Const with Monoid
+{- | Applicative  -- the power of Const with Monoid -}
 type AppLens s t a b = forall f. Applicative f => (a -> f b) -> s -> f t
 
 type AppLens' s a = AppLens s s a a
@@ -165,7 +164,7 @@ _all' ref f s = traverse update s
 
 
 
--- | view set get
+{- | view set get -}
 type Getting s a = ((a -> Const a a) -> s -> Const a s)
 type Setting s t a b = ((a -> Identity b) -> s -> Identity t)
 
@@ -179,7 +178,7 @@ set :: Setting s t a b -> b -> s -> t
 set l  x = runIdentity . l (Identity . const x )
 
 
--- As view and all will accumulate the value hence we need a Monoid
+{- As view and all will accumulate the value hence we need a Monoid -}
 toListOf :: ((a -> Const [a] a) -> s -> Const [a] s) -> s -> [a]
 toListOf l = getConst . l (Const  . (: []))
 -- toListOf (_all' 1) [1,2,3,1,1]
@@ -192,7 +191,7 @@ getConst $ traverse (\x -> if x == 0 then (Const [x]) else pure x) [1,0,3,0,4,0]
 
 
 
--- | Preview -- First Value
+{- | Preview -- First Value -}
 preview :: ((a -> Const (First a) a) -> s -> Const (First a) s) -> s -> Maybe a
 preview l = getFirst . getConst . l (Const . First . Just)
 -- preview (_all' 0) [1,2,2]   => Nothing
@@ -238,7 +237,7 @@ type Traversal' s a = Traversal s s a a
 
 
 -- each = every Element
-class Each s t a b | s -> a, t -> b, s b -> t, t a -> s where
+class Each' s t a b | s -> a, t -> b, s b -> t, t a -> s where
     each :: Traversal s t a b
 
 
@@ -302,7 +301,56 @@ type Fold s a = forall f. (Contravariant f, Applicative f) => (a -> f a) -> s ->
 
 -- isomorphic    (s -> a) => (a -> s)
 
-newtype Tagged a b = Tagged {unTagged :: b}
+type Iso s t a b = forall p f. (Profunctor p, Functor f) => p a (f b) -> p s (f t)
 
-enum :: (Enum a, Functor f) => Tagged a (f a) -> Tagged Int (f Int)
-enum (Tagged fa) = Tagged (fromEnum <$> fa)
+
+data Foo a s x = Foo { unfoo ::  s -> a }
+
+-- getting s -> a   contravariant
+-- lmap :: (s -> a)  Foo a a (f b) -> Foo a s (f b)
+-- unfoo (Foo a s (f b))  => s -> a
+{-- or also called
+newtype Forget r a b = Forget { runForget :: a -> r }
+
+instance Profunctor (Forget r) where
+    dimap f _ (Forget k) = Forget (k . f)
+--}
+
+-- getting b -> t   covariant
+data Bar x b = Bar { unBar :: b}
+-- aka
+newtype Tagged1 a b = Tagged1 {unTagged1 :: b}
+
+-- rmap :: (f b -> f t) -> Bar x (f b) -> Bar x (f t)
+
+-- bt :: Iso s t a b -> (b -> t)
+-- bt i = \b -> runIdentity . unTagged $ i (Tagged (Identity b))
+--                                                      f    b
+-- runIdentity (unTagged $  Tagged (Identity 2)  => 2
+-- clever -- (runIdentity (unTagged $  Tagged (Identity id))) 3    => 3
+instance Profunctor Tagged1 where
+    -- dimap :: (a -> b) -> (c -> d) -> Tagged * b c -> Tagged * a d
+    dimap _ g (Tagged1 b) = Tagged1 (g b)
+
+-- get both at once
+data Exchange a b s t = Exchange (s -> a) (b -> t)
+instance Profunctor (Exchange a b) where
+    -- dimap :: (a -> b) -> (c -> d) -> Exchange a b b c -> Exchange a b a d
+    dimap f g (Exchange k l) =  Exchange (k . f ) (g . l)
+
+iso :: (s -> a) -> (b -> t) -> Iso s t a b
+iso f g =  dimap f (fmap g)
+
+
+
+-- ||| LEnses deconstruct Product type
+{--
+get :: s -> a
+put :: s -> a -> s
+lens :: s -> (a, a -> s)
+--}
+-- ||| Prism deconstruct SUm Type
+{--
+get :: s -> Maybe a
+put :: a -> s
+--}

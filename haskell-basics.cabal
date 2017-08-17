@@ -39,3 +39,6 @@ executable haskell-basics
                     ,  time
                     ,  random
                     ,  grid
+                    ,  profunctors
+                    ,  aeson
+                    ,  bytestring
