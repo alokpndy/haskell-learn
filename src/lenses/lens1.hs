@@ -9,6 +9,7 @@
 
 
 
+
 module Lens1 where
 
 import           Control.Applicative
@@ -243,10 +244,12 @@ class Each' s t a b | s -> a, t -> b, s b -> t, t a -> s where
 
 
 --                             functionalInstances  i.e [Char], Maybe Int
-instance Traversable t => Each (t a) (t b) a b where
+instance Traversable t => Each' (t a) (t b) a b where
     each = traverse  --but as travrse on work on second element of tuple hence
 
 
+both :: Traversal' (a,a) a
+both f (t, t1) = (t,) <$> f t1
 
 
 
@@ -289,10 +292,68 @@ _head f (x:xs) = (:) <$> f x <*> pure xs
 
 
 
+
+
+
 -------------------------------------------
 --------------- FOLD ----------------------
+-- unlike ordinary functors,
+-- applicative functors can be combined.
+-------------------------------------------
 
-type Fold s a = forall f. (Contravariant f, Applicative f) => (a -> f a) -> s -> f s
+-- type Fold s a = forall f. (Contravariant f, Applicative f) => (a -> f a) -> s -> f s
+
+-- | foldMap :: Monoid m => (a -> m) -> t a -> m
+-- t :: Foldable    i.e Maybe, [], tree
+--  folded :: Foldable t => Fold (t a) a
+{-
+newtype Folding f a = Folding { getFolding :: f a }.
+
+instance (Contravariant f, Applicative f) => Monoid (Folding f a) where
+    mempty = Folding (coerce $ pure ())
+    mappend (Folding fa) (Folding fb) = Folding (fa *> fb)
+
+-- from Fold
+-- folded :: (Contravariant f, Applicative f, Foldable t) => (a -> f a) -> t a -> f (t a)
+-- folded f s = coerce . getFolding $ foldMap (Folding . f) s
+-}
+
+{-
+foldMap :: (Monoid m, Foldable t) => (a -> m) -> t a -> m
+folMap f a :: f a
+
+-}
+{-
+class Foldable t where ...
+  toList :: t a -> [a]
+-}
+
+-- type Traversal s t a b = forall f. Applicative f => (a -> f b) -> s -> f t
+-- type Getting s a = ((a -> Const a a) -> s -> Const a s)
+-- type Getting' r s a = (a -> Const r a) -> s -> Const r s
+type Fold s a = forall m. Monoid m => Getting' m s a
+
+bothF :: Fold (a,a) a
+bothF f (t1, t2) = (,) <$> f t1 <*> f (t2)
+-- toListOf' bothF (1,2)  => [1,2]
+-- (`appEndo` []) $ getConst $ bothF (\x -> Const (Endo (x:))) (1,2)
+
+
+-- | replicated
+
+-- | Combining Folds using (*>)
+foldCombine :: Fold s a -> Fold s a -> Fold s a
+foldCombine fa fb = \l s -> fa l s *> fb l s
+-- toListOf' (foldCombine (bothF) (bothF)) (1,2) => [1,2,1,2]
+-- toListOf' (foldCombine (_1) (bothF)) (1,2) => [1,1,2]
+-- toListOf' (_1 <> bothF) (1,2)  => [1,1,2]
+-- f here is Const has monoid instance hence no need to write Fold
+
+-- | Foldl
+-- A Fold can return 0 elements as it Monoid and has mempty
+-- Semigroup do not have mempty, hence must return 1 or more element
+
+
 
 
 

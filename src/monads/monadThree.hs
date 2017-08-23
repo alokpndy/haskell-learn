@@ -14,7 +14,8 @@ import           Data.Monoid
 import           Data.Maybe
 import           System.Random
 
-
+-- All monads are applicatives, and all applicatives are functors.
+-- Not all functors are applicatives and not all applicatives are monads. 
 
 {- The Reader Functor
 
